@@ -31,7 +31,7 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Criar usuário com sucesso retorna 201 e dados do usuário")
     void createUsuario_ComDadosValidos_Retorna201() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("maria@ifc.edu.br", "123456");
+        UsuarioRequestDTO dto = new UsuarioRequestDTO("maria@ifc.edu.br", "123456", null);
 
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -45,7 +45,7 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Criar usuário com dados inválidos retorna 422")
     void createUsuario_ComDadosInvalidos_Retorna422() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("email-invalido", "123");
+        UsuarioRequestDTO dto = new UsuarioRequestDTO("email-invalido", "123", null);
 
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -59,7 +59,7 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Criar usuário duplicado retorna 409")
     void createUsuario_ComUsernameDuplicado_Retorna409() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("pedro@ifc.edu.br", "123456");
+        UsuarioRequestDTO dto = new UsuarioRequestDTO("pedro@ifc.edu.br", "123456", null);
 
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -76,7 +76,7 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Buscar usuário por id retorna 200")
     void getById_ComIdExistente_Retorna200() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("ana@ifc.edu.br", "123456");
+        UsuarioRequestDTO dto = new UsuarioRequestDTO("ana@ifc.edu.br", "123456", null);
 
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -101,7 +101,7 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Atualizar senha com sucesso retorna 204")
     void updatePassword_ComSucesso_Retorna204() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("lucas@ifc.edu.br", "123456");
+        UsuarioRequestDTO dto = new UsuarioRequestDTO("lucas@ifc.edu.br", "123456", null);
 
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -119,7 +119,7 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Atualizar senha quando confirmação não confere retorna 400")
     void updatePassword_ComConfirmacaoIncorreta_Retorna400() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("carlos@ifc.edu.br", "123456");
+        UsuarioRequestDTO dto = new UsuarioRequestDTO("carlos@ifc.edu.br", "123456", null);
 
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -139,7 +139,7 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Atualizar senha com senha atual incorreta retorna 400")
     void updatePassword_ComSenhaAtualIncorreta_Retorna400() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("julia@ifc.edu.br", "123456");
+        UsuarioRequestDTO dto = new UsuarioRequestDTO("julia@ifc.edu.br", "123456", null);
 
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -171,8 +171,8 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Listar todos os usuários retorna 200 e lista")
     void getAll_RetornaListaDeUsuarios() throws Exception {
-        UsuarioRequestDTO dto1 = new UsuarioRequestDTO("user1@ifc.edu.br", "123456");
-        UsuarioRequestDTO dto2 = new UsuarioRequestDTO("user2@ifc.edu.br", "123456");
+        UsuarioRequestDTO dto1 = new UsuarioRequestDTO("user1@ifc.edu.br", "123456", null);
+        UsuarioRequestDTO dto2 = new UsuarioRequestDTO("user2@ifc.edu.br", "123456", null);
 
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)

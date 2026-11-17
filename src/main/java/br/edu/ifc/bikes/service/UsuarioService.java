@@ -11,6 +11,7 @@ import br.edu.ifc.bikes.exception.UsernameUniqueViolationException;
 import br.edu.ifc.bikes.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,12 +23,17 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    // sem @Transactional: o saveAndFlush executa o INSERT na hora,
-    // então a violação de unicidade é capturada aqui dentro.
     public UsuarioResponseDTO create(UsuarioRequestDTO dto) {
         try {
             Usuario usuario = usuarioMapper.toUsuario(dto);
+            usuario.setPassword(passwordEncoder.encode(dto.password()));
+            if (dto.role() != null && !dto.role().isBlank()) {
+                usuario.setRole(Usuario.Role.valueOf(dto.role().toUpperCase()));
+            } else {
+                usuario.setRole(Usuario.Role.CLIENTE);
+            }
             return usuarioMapper.toResponse(usuarioRepository.saveAndFlush(usuario));
         } catch (DataIntegrityViolationException ex) {
             throw new UsernameUniqueViolationException(
@@ -48,12 +54,11 @@ public class UsuarioService {
 
         Usuario usuario = findEntityById(id);
 
-        if (!usuario.getPassword().equals(dto.senhaAtual())) {
+        if (!matchesPassword(dto.senhaAtual(), usuario.getPassword())) {
             throw new PasswordInvalidException("A senha atual não confere.");
         }
 
-        // o Hibernate detecta a alteração e faz o UPDATE ao fim da transação
-        usuario.setPassword(dto.novaSenha());
+        usuario.setPassword(passwordEncoder.encode(dto.novaSenha()));
     }
 
     @Transactional(readOnly = true)
@@ -61,8 +66,21 @@ public class UsuarioService {
         return usuarioMapper.toResponse(usuarioRepository.findAll());
     }
 
-    private Usuario findEntityById(Long id) {
+    @Transactional(readOnly = true)
+    public Usuario findByUsername(String username) {
+        return usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
+    }
+
+    public Usuario findEntityById(Long id) {
         return usuarioRepository.findById(id).orElseThrow(
                 () -> new EntityNotFoundException(String.format("Usuário com id=%d não encontrado", id)));
+    }
+
+    private boolean matchesPassword(String raw, String stored) {
+        if (stored != null && (stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$"))) {
+            return passwordEncoder.matches(raw, stored);
+        }
+        return raw != null && raw.equals(stored);
     }
 }

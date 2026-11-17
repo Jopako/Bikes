@@ -4,10 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Getter
@@ -15,7 +12,7 @@ import java.util.Objects;
 @ToString(exclude = "password")
 @Entity
 @Table(name = "usuarios")
-public class Usuario implements java.io.Serializable {
+public class Usuario extends Auditable implements java.io.Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,16 +28,6 @@ public class Usuario implements java.io.Serializable {
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 50)
     private Role role = Role.CLIENTE;
-
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime dataCriacao;
-
-    @UpdateTimestamp
-    private LocalDateTime dataModificacao;
-
-    private String criadoPor;
-    private String modificadoPor;
 
     public enum Role {
         ADMIN, CLIENTE

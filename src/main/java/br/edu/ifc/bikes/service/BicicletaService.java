@@ -5,8 +5,10 @@ import br.edu.ifc.bikes.dto.BicicletaResponseDTO;
 import br.edu.ifc.bikes.dto.mapper.BicicletaMapper;
 import br.edu.ifc.bikes.entity.Bicicleta;
 import br.edu.ifc.bikes.exception.EntityNotFoundException;
+import br.edu.ifc.bikes.exception.UsernameUniqueViolationException;
 import br.edu.ifc.bikes.repository.BicicletaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,14 +23,26 @@ public class BicicletaService {
 
     @Transactional
     public BicicletaResponseDTO create(BicicletaRequestDTO dto) {
-        Bicicleta bicicleta = bicicletaMapper.toBicicleta(dto);
-        aplicarStatus(dto, bicicleta);
-        return bicicletaMapper.toResponse(bicicletaRepository.save(bicicleta));
+        try {
+            Bicicleta bicicleta = bicicletaMapper.toBicicleta(dto);
+            aplicarStatus(dto, bicicleta);
+            return bicicletaMapper.toResponse(bicicletaRepository.saveAndFlush(bicicleta));
+        } catch (DataIntegrityViolationException ex) {
+            throw new UsernameUniqueViolationException(
+                    String.format("Código de bicicleta '%s' já cadastrado", dto.codigo()));
+        }
     }
 
     @Transactional(readOnly = true)
     public BicicletaResponseDTO getById(Long id) {
         return bicicletaMapper.toResponse(findEntityById(id));
+    }
+
+    @Transactional(readOnly = true)
+    public BicicletaResponseDTO getByCodigo(String codigo) {
+        Bicicleta bicicleta = bicicletaRepository.findByCodigo(codigo).orElseThrow(
+                () -> new EntityNotFoundException(String.format("Bicicleta com código '%s' não encontrada", codigo)));
+        return bicicletaMapper.toResponse(bicicleta);
     }
 
     @Transactional(readOnly = true)
@@ -41,7 +55,12 @@ public class BicicletaService {
         Bicicleta bicicleta = findEntityById(id);
         bicicletaMapper.updateFromDto(dto, bicicleta);
         aplicarStatus(dto, bicicleta);
-        return bicicletaMapper.toResponse(bicicleta);
+        try {
+            return bicicletaMapper.toResponse(bicicletaRepository.saveAndFlush(bicicleta));
+        } catch (DataIntegrityViolationException ex) {
+            throw new UsernameUniqueViolationException(
+                    String.format("Código de bicicleta '%s' já cadastrado", dto.codigo()));
+        }
     }
 
     @Transactional
@@ -58,6 +77,8 @@ public class BicicletaService {
     private void aplicarStatus(BicicletaRequestDTO dto, Bicicleta bicicleta) {
         if (dto.status() != null && !dto.status().isBlank()) {
             bicicleta.setStatus(Bicicleta.Status.valueOf(dto.status().toUpperCase()));
+        } else if (bicicleta.getStatus() == null) {
+            bicicleta.setStatus(Bicicleta.Status.LIVRE);
         }
     }
 }

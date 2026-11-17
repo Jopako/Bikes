@@ -4,10 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Getter
@@ -15,12 +12,15 @@ import java.util.Objects;
 @ToString
 @Entity
 @Table(name = "bicicletas")
-public class Bicicleta implements java.io.Serializable {
+public class Bicicleta extends Auditable implements java.io.Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
+
+    @Column(name = "codigo", nullable = false, unique = true, length = 50)
+    private String codigo;
 
     @Column(name = "modelo", nullable = false, length = 100)
     private String modelo;
@@ -36,20 +36,10 @@ public class Bicicleta implements java.io.Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    private Status status = Status.DISPONIVEL;
-
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime dataCriacao;
-
-    @UpdateTimestamp
-    private LocalDateTime dataModificacao;
-
-    private String criadoPor;
-    private String modificadoPor;
+    private Status status = Status.LIVRE;
 
     public enum Status {
-        DISPONIVEL, ALUGADA, MANUTENCAO
+        LIVRE, OCUPADA, MANUTENCAO
     }
 
     @Override
