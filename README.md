@@ -214,37 +214,3 @@ Regras:
 
 Todas as entidades registram `dataCriacao`, `dataModificacao`, `criadoPor` e `modificadoPor` (`Auditable` + Spring Data Auditing). Requisições autenticadas registram o e-mail do usuário; cadastros públicos registram `system`.
 
-## Coleções prontas (Postman / Insomnia)
-
-- `postman/Bikes-API.postman_collection.json` — no Postman: **Import → File**.
-- `insomnia/Bikes-API.insomnia.yaml` — no Insomnia: **Import → File** (formato Insomnia v5). O Insomnia também importa direto o JSON do Postman, se preferir usar apenas um arquivo.
-
-As duas versões têm as mesmas **26 requisições**, organizadas nas pastas `0` a `6`, na ordem do roteiro de apresentação. Os scripts salvam automaticamente `adminToken`, `clientToken`, `bikeId` e `locacaoId` nas variáveis — você só precisa dar **Send**.
-
-No Insomnia, selecione o ambiente **Bikes Local** no dropdown antes de começar. Se alguma variável não resolver, confira o valor de `baseUrl` no ambiente (`http://localhost:8080`).
-
-Para repetir a apresentação sem reiniciar a aplicação, troque `clienteUsername`, `bikeCodigo` e o e-mail usado no teste de `ADMIN` falso; ou reinicie a app, já que o H2 é em memória.
-
-## Testes
-
-```bash
-./mvnw test
-```
-
-A suíte possui **21 testes**, todos executados pelo comando acima:
-
-- `UsuarioControllerTest` — testes de controller com token JWT real.
-- `UsuarioEndToEndTest` — testes **ponto a ponto** (HTTP real, porta aleatória) de cadastro, login e alteração de senha.
-- `FluxoLocacaoEndToEndTest` — teste **ponto a ponto** completo de Cliente → Bicicleta → Locação → Devolução → Relatório, incluindo a regra de locação simultânea e a idempotência da devolução.
-- `BikesApplicationTests` — teste de carregamento do contexto.
-
-## Roteiro de apresentação
-
-1. `./mvnw spring-boot:run` e abrir `http://localhost:8080/docs-bikes.html`.
-2. `POST /api/v1/auth/login` com `admin@bikes.com` / `123456` → copiar o token → **Authorize**.
-3. Admin: `POST /api/v1/bicicletas` e `GET /api/v1/bicicletas`.
-4. Criar usuário cliente (`POST /api/v1/usuarios`), logar com ele e fazer `POST /api/v1/clientes`.
-5. Cliente: `POST /api/v1/locacoes` informando `bicicletaCodigo` → bike vira `OCUPADA`.
-6. Cliente: `POST /api/v1/locacoes/{id}/devolucao` → mostra `valorDebito` e bike volta a `LIVRE` (ou `MANUTENCAO`).
-7. Admin: `GET /api/v1/locacoes/relatorio`.
-8. `./mvnw test` e, opcionalmente, `/h2-console` para mostrar as tabelas e os campos de auditoria.
