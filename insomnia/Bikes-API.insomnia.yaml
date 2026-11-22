@@ -1,0 +1,411 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Bikes API - Apresentacao
+meta:
+  id: wrk_bikes_apresentacao
+collection:
+  - name: '0 - Login (rodar primeiro)'
+    meta:
+      id: fld_bikes_0
+    children:
+      - name: '01 - Login ADMIN (salva token)'
+        meta:
+          id: req_bikes_0_0
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/auth/login'
+        headers:
+          - name: Content-Type
+            value: application/json
+        body:
+          mimeType: application/json
+          text: |
+            {"username": "admin@bikes.com", "password": "123456"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+            if (json && json.token !== undefined) insomnia.environment.set("adminToken", String(json.token));
+      - name: '02 - Criar usuario CLIENTE (publico)'
+        meta:
+          id: req_bikes_0_1
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/usuarios'
+        headers:
+          - name: Content-Type
+            value: application/json
+        body:
+          mimeType: application/json
+          text: |
+            {"username": "{{ _.clienteUsername }}", "password": "{{ _.clientePassword }}"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '03 - Login CLIENTE (salva token)'
+        meta:
+          id: req_bikes_0_2
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/auth/login'
+        headers:
+          - name: Content-Type
+            value: application/json
+        body:
+          mimeType: application/json
+          text: |
+            {"username": "{{ _.clienteUsername }}", "password": "{{ _.clientePassword }}"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+            if (json && json.token !== undefined) insomnia.environment.set("clientToken", String(json.token));
+  - name: '1 - Usuarios'
+    meta:
+      id: fld_bikes_1
+    children:
+      - name: '04 - Tentar criar ADMIN pelo cadastro publico (ignorado)'
+        meta:
+          id: req_bikes_1_0
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/usuarios'
+        headers:
+          - name: Content-Type
+            value: application/json
+        body:
+          mimeType: application/json
+          text: |
+            {"username": "admin-falso@ifc.edu.br", "password": "123456", "role": "ADMIN"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '05 - Listar usuarios (ADMIN)'
+        meta:
+          id: req_bikes_1_1
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/usuarios'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+  - name: '2 - Clientes'
+    meta:
+      id: fld_bikes_2
+    children:
+      - name: '06 - Cadastrar cliente (CLIENTE)'
+        meta:
+          id: req_bikes_2_0
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/clientes'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"nomeCompleto": "Maria Silva", "cpf": "12345678909"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '07 - Meus dados (CLIENTE)'
+        meta:
+          id: req_bikes_2_1
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/clientes/me'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '08 - Listar clientes (ADMIN)'
+        meta:
+          id: req_bikes_2_2
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/clientes'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+  - name: '3 - Bicicletas (ADMIN)'
+    meta:
+      id: fld_bikes_3
+    children:
+      - name: '09 - Criar bicicleta (ADMIN)'
+        meta:
+          id: req_bikes_3_0
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/bicicletas'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"codigo": "{{ _.bikeCodigo }}", "modelo": "Caloi Elite", "marca": "Caloi", "cor": "Preta", "anoFabricacao": 2024, "status": "LIVRE"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+            if (json && json.id !== undefined) insomnia.environment.set("bikeId", String(json.id));
+      - name: '10 - Listar bicicletas (ADMIN)'
+        meta:
+          id: req_bikes_3_1
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/bicicletas'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '11 - Buscar pelo codigo (ADMIN)'
+        meta:
+          id: req_bikes_3_2
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/bicicletas/codigo/{{ _.bikeCodigo }}'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '12 - Cliente tenta listar bicicletas (403)'
+        meta:
+          id: req_bikes_3_3
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/bicicletas'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+  - name: '4 - Locacoes e devolucoes'
+    meta:
+      id: fld_bikes_4
+    children:
+      - name: '13 - Solicitar locacao (CLIENTE)'
+        meta:
+          id: req_bikes_4_0
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/locacoes'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"bicicletaCodigo": "{{ _.bikeCodigo }}", "dataPrevistaDevolucao": "2030-12-31T10:00:00", "cartaoCredito": "4111111111111111"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+            if (json && json.id !== undefined) insomnia.environment.set("locacaoId", String(json.id));
+      - name: '14 - Bike ficou OCUPADA (ADMIN)'
+        meta:
+          id: req_bikes_4_1
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/bicicletas/codigo/{{ _.bikeCodigo }}'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '15 - Segunda locacao da mesma bike (400)'
+        meta:
+          id: req_bikes_4_2
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/locacoes'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"bicicletaCodigo": "{{ _.bikeCodigo }}", "dataPrevistaDevolucao": "2030-12-31T10:00:00", "cartaoCredito": "4111111111111111"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '16 - Devolver bicicleta (CLIENTE)'
+        meta:
+          id: req_bikes_4_3
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/locacoes/{{ _.locacaoId }}/devolucao'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"problemaManutencao": false}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '17 - Devolucao duplicada (400)'
+        meta:
+          id: req_bikes_4_4
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/locacoes/{{ _.locacaoId }}/devolucao'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"problemaManutencao": false}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '18 - Bike voltou para LIVRE (ADMIN)'
+        meta:
+          id: req_bikes_4_5
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/bicicletas/codigo/{{ _.bikeCodigo }}'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '19 - Relatorio completo (ADMIN)'
+        meta:
+          id: req_bikes_4_6
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/locacoes/relatorio'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '20 - Minhas locacoes (CLIENTE)'
+        meta:
+          id: req_bikes_4_7
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/locacoes/minhas'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+  - name: '5 - Opcional: manutencao'
+    meta:
+      id: fld_bikes_5
+    children:
+      - name: '21 - Criar segunda bicicleta (ADMIN)'
+        meta:
+          id: req_bikes_5_0
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/bicicletas'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"codigo": "{{ _.bikeCodigo }}-MAN", "modelo": "Caloi Elite", "marca": "Caloi", "cor": "Preta", "anoFabricacao": 2024, "status": "LIVRE"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+            if (json && json.id !== undefined) insomnia.environment.set("bikeManutencaoId", String(json.id));
+      - name: '22 - Locar a segunda bike (CLIENTE)'
+        meta:
+          id: req_bikes_5_1
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/locacoes'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"bicicletaCodigo": "{{ _.bikeCodigo }}-MAN", "dataPrevistaDevolucao": "2030-12-31T10:00:00", "cartaoCredito": "4111111111111111"}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+            if (json && json.id !== undefined) insomnia.environment.set("locacaoManutencaoId", String(json.id));
+      - name: '23 - Devolver com problema (CLIENTE)'
+        meta:
+          id: req_bikes_5_2
+        method: POST
+        url: '{{ _.baseUrl }}/api/v1/locacoes/{{ _.locacaoManutencaoId }}/devolucao'
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: 'Bearer {{ _.clientToken }}'
+        body:
+          mimeType: application/json
+          text: |
+            {"problemaManutencao": true}
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '24 - Bike em MANUTENCAO (ADMIN)'
+        meta:
+          id: req_bikes_5_3
+        method: GET
+        url: '{{ _.baseUrl }}/api/v1/bicicletas/codigo/{{ _.bikeCodigo }}-MAN'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+  - name: '6 - Limpeza'
+    meta:
+      id: fld_bikes_6
+    children:
+      - name: '25 - Remover bike principal (ADMIN)'
+        meta:
+          id: req_bikes_6_0
+        method: DELETE
+        url: '{{ _.baseUrl }}/api/v1/bicicletas/{{ _.bikeId }}'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+      - name: '26 - Remover bike de manutencao (se rodou a pasta 5)'
+        meta:
+          id: req_bikes_6_1
+        method: DELETE
+        url: '{{ _.baseUrl }}/api/v1/bicicletas/{{ _.bikeManutencaoId }}'
+        headers:
+          - name: Authorization
+            value: 'Bearer {{ _.adminToken }}'
+        scripts:
+          afterResponse: |
+            const json = insomnia.response.json();
+environments:
+  name: Bikes Local
+  meta:
+    id: env_bikes_local
+  data:
+    baseUrl: "http://localhost:8080"
+    adminToken: ""
+    clientToken: ""
+    clienteUsername: "cliente@ifc.edu.br"
+    clientePassword: "123456"
+    bikeCodigo: "BIKE-001"
+    bikeId: ""
+    locacaoId: ""
+    locacaoManutencaoId: ""
+    bikeManutencaoId: ""

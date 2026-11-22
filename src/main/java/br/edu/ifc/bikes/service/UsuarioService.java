@@ -29,11 +29,8 @@ public class UsuarioService {
         try {
             Usuario usuario = usuarioMapper.toUsuario(dto);
             usuario.setPassword(passwordEncoder.encode(dto.password()));
-            if (dto.role() != null && !dto.role().isBlank()) {
-                usuario.setRole(Usuario.Role.valueOf(dto.role().toUpperCase()));
-            } else {
-                usuario.setRole(Usuario.Role.CLIENTE);
-            }
+            // O cadastro é público: o perfil é sempre CLIENTE. ADMIN é criado na inicialização.
+            usuario.setRole(Usuario.Role.CLIENTE);
             return usuarioMapper.toResponse(usuarioRepository.saveAndFlush(usuario));
         } catch (DataIntegrityViolationException ex) {
             throw new UsernameUniqueViolationException(

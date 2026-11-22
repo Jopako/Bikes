@@ -1,0 +1,900 @@
+{
+  "info": {
+    "name": "Bikes API - Apresentacao",
+    "description": "Collection para apresentacao da API Bikes. Rode as pastas em ordem, da 0 a 6. Os tokens e ids sao salvos automaticamente pelo script de teste de cada request. Antes de comecar: ./mvnw spring-boot:run. ADMIN: admin@bikes.com / 123456.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "clientToken",
+      "value": ""
+    },
+    {
+      "key": "clienteUsername",
+      "value": "cliente@ifc.edu.br"
+    },
+    {
+      "key": "clientePassword",
+      "value": "123456"
+    },
+    {
+      "key": "bikeCodigo",
+      "value": "BIKE-001"
+    },
+    {
+      "key": "bikeId",
+      "value": ""
+    },
+    {
+      "key": "locacaoId",
+      "value": ""
+    },
+    {
+      "key": "locacaoManutencaoId",
+      "value": ""
+    },
+    {
+      "key": "bikeManutencaoId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0 - Login (rodar primeiro)",
+      "item": [
+        {
+          "name": "01 - Login ADMIN (salva token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Esperado: 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin@bikes.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"adminToken\", String(pm.response.json().token)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Criar usuario CLIENTE (publico)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/usuarios",
+            "description": "Esperado: 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{clienteUsername}}\",\n  \"password\": \"{{clientePassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Login CLIENTE (salva token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Esperado: 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{clienteUsername}}\",\n  \"password\": \"{{clientePassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"clientToken\", String(pm.response.json().token)); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1 - Usuarios",
+      "item": [
+        {
+          "name": "04 - Tentar criar ADMIN pelo cadastro publico (ignorado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/usuarios",
+            "description": "Esperado: 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin-falso@ifc.edu.br\",\n  \"password\": \"123456\",\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "pm.expect(pm.response.json().role).to.eql(\"CLIENTE\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Listar usuarios (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/usuarios",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 - Clientes",
+      "item": [
+        {
+          "name": "06 - Cadastrar cliente (CLIENTE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/clientes",
+            "description": "Esperado: 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeCompleto\": \"Maria Silva\",\n  \"cpf\": \"12345678909\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Meus dados (CLIENTE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/clientes/me",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Listar clientes (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/clientes",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 - Bicicletas (ADMIN)",
+      "item": [
+        {
+          "name": "09 - Criar bicicleta (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas",
+            "description": "Esperado: 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{bikeCodigo}}\",\n  \"modelo\": \"Caloi Elite\",\n  \"marca\": \"Caloi\",\n  \"cor\": \"Preta\",\n  \"anoFabricacao\": 2024,\n  \"status\": \"LIVRE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"bikeId\", String(pm.response.json().id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Listar bicicletas (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Buscar pelo codigo (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas/codigo/{{bikeCodigo}}",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Cliente tenta listar bicicletas (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas",
+            "description": "Esperado: 403"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 - Locacoes e devolucoes",
+      "item": [
+        {
+          "name": "13 - Solicitar locacao (CLIENTE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/locacoes",
+            "description": "Esperado: 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bicicletaCodigo\": \"{{bikeCodigo}}\",\n  \"dataPrevistaDevolucao\": \"2030-12-31T10:00:00\",\n  \"cartaoCredito\": \"4111111111111111\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"locacaoId\", String(pm.response.json().id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 - Bike ficou OCUPADA (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas/codigo/{{bikeCodigo}}",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.expect(pm.response.json().status).to.eql(\"OCUPADA\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 - Segunda locacao da mesma bike (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/locacoes",
+            "description": "Esperado: 400",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bicicletaCodigo\": \"{{bikeCodigo}}\",\n  \"dataPrevistaDevolucao\": \"2030-12-31T10:00:00\",\n  \"cartaoCredito\": \"4111111111111111\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16 - Devolver bicicleta (CLIENTE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/locacoes/{{locacaoId}}/devolucao",
+            "description": "Esperado: 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"problemaManutencao\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.expect(pm.response.json().valorDebito).to.not.be.null;"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17 - Devolucao duplicada (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/locacoes/{{locacaoId}}/devolucao",
+            "description": "Esperado: 400",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"problemaManutencao\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18 - Bike voltou para LIVRE (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas/codigo/{{bikeCodigo}}",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.expect(pm.response.json().status).to.eql(\"LIVRE\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19 - Relatorio completo (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/locacoes/relatorio",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20 - Minhas locacoes (CLIENTE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/locacoes/minhas",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5 - Opcional: manutencao",
+      "item": [
+        {
+          "name": "21 - Criar segunda bicicleta (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas",
+            "description": "Esperado: 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{bikeCodigo}}-MAN\",\n  \"modelo\": \"Caloi Elite\",\n  \"marca\": \"Caloi\",\n  \"cor\": \"Preta\",\n  \"anoFabricacao\": 2024,\n  \"status\": \"LIVRE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"bikeManutencaoId\", String(pm.response.json().id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22 - Locar a segunda bike (CLIENTE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/locacoes",
+            "description": "Esperado: 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bicicletaCodigo\": \"{{bikeCodigo}}-MAN\",\n  \"dataPrevistaDevolucao\": \"2030-12-31T10:00:00\",\n  \"cartaoCredito\": \"4111111111111111\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"locacaoManutencaoId\", String(pm.response.json().id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23 - Devolver com problema (CLIENTE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {clientToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/locacoes/{{locacaoManutencaoId}}/devolucao",
+            "description": "Esperado: 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"problemaManutencao\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24 - Bike em MANUTENCAO (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas/codigo/{{bikeCodigo}}-MAN",
+            "description": "Esperado: 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.expect(pm.response.json().status).to.eql(\"MANUTENCAO\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6 - Limpeza",
+      "item": [
+        {
+          "name": "25 - Remover bike principal (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas/{{bikeId}}",
+            "description": "Esperado: 204"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "26 - Remover bike de manutencao (se rodou a pasta 5)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {adminToken}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bicicletas/{{bikeManutencaoId}}",
+            "description": "Esperado: 204"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

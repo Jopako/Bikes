@@ -58,7 +58,7 @@ public class LocacaoService {
     @Transactional
     public LocacaoResponseDTO devolver(Long locacaoId, DevolucaoRequestDTO dto) {
         Cliente cliente = clienteService.getAuthenticatedCliente();
-        Locacao locacao = locacaoRepository.findByIdAndCliente(locacaoId, cliente)
+        Locacao locacao = locacaoRepository.findByIdAndClienteForUpdate(locacaoId, cliente)
                 .orElseThrow(() -> new EntityNotFoundException("Locação não encontrada para o cliente autenticado."));
         if (locacao.getStatus() != Locacao.Status.ATIVA) {
             throw new BusinessException("Locação já foi finalizada.");
@@ -105,11 +105,11 @@ public class LocacaoService {
 
     private Bicicleta resolverBicicleta(LocacaoRequestDTO dto) {
         if (dto.bicicletaId() != null) {
-            return bicicletaRepository.findById(dto.bicicletaId())
+            return bicicletaRepository.findByIdForUpdate(dto.bicicletaId())
                     .orElseThrow(() -> new EntityNotFoundException("Bicicleta não encontrada."));
         }
         if (dto.bicicletaCodigo() != null && !dto.bicicletaCodigo().isBlank()) {
-            return bicicletaRepository.findByCodigo(dto.bicicletaCodigo())
+            return bicicletaRepository.findByCodigoForUpdate(dto.bicicletaCodigo())
                     .orElseThrow(() -> new EntityNotFoundException("Bicicleta não encontrada."));
         }
         throw new BusinessException("Informe o código ou id da bicicleta.");

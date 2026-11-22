@@ -1,6 +1,7 @@
 package br.edu.ifc.bikes.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record BicicletaRequestDTO(
@@ -21,5 +22,6 @@ public record BicicletaRequestDTO(
 
         Integer anoFabricacao,
 
+        @Pattern(regexp = "LIVRE|OCUPADA|MANUTENCAO", message = "Status deve ser LIVRE, OCUPADA ou MANUTENCAO")
         String status
 ) {}

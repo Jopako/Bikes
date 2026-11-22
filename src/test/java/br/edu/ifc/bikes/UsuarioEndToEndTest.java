@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-public class UsuarioIT {
+public class UsuarioEndToEndTest {
 
     private static final String URI_USUARIOS = "/api/v1/usuarios";
     private static final String URI_USUARIO = "/api/v1/usuarios/{id}";
@@ -27,9 +27,6 @@ public class UsuarioIT {
 
     @LocalServerPort
     int port;
-
-    @Autowired
-    org.springframework.test.web.reactive.server.WebTestClient.Builder builder;
 
     private WebTestClient client() {
         return WebTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
@@ -61,7 +58,7 @@ public class UsuarioIT {
     @Test
     @DisplayName("Alterar senha com dados válidos retorna 204 e a nova senha passa a valer")
     public void alterarSenha_DadosValidos_Retorna204() {
-        UsuarioResponseDTO u = criarUsuario("jose@gmail.com", "123456", "ADMIN");
+        UsuarioResponseDTO u = criarUsuario("jose@gmail.com", "123456", "CLIENTE");
         String token = login("jose@gmail.com", "123456");
 
         patchSenha(u.id(), new UsuarioSenhaDTO("123456", "nova01", "nova01"), token)
@@ -101,7 +98,7 @@ public class UsuarioIT {
     @Test
     @DisplayName("Alterar senha com senha atual incorreta retorna 400")
     public void alterarSenha_SenhaAtualIncorreta_RetornaErrorMessageStatus400() {
-        UsuarioResponseDTO u = criarUsuario("jose2@gmail.com", "123456", "ADMIN");
+        UsuarioResponseDTO u = criarUsuario("jose2@gmail.com", "123456", "CLIENTE");
         String token = login("jose2@gmail.com", "123456");
 
         ErrorMessage responseBody = patchSenha(u.id(), new UsuarioSenhaDTO("senhaE", "nova01", "nova01"), token)
@@ -117,7 +114,7 @@ public class UsuarioIT {
     @Test
     @DisplayName("Alterar senha com confirmação diferente da nova senha retorna 400")
     public void alterarSenha_ConfirmacaoNaoConfere_RetornaErrorMessageStatus400() {
-        UsuarioResponseDTO u = criarUsuario("jose3@gmail.com", "123456", "ADMIN");
+        UsuarioResponseDTO u = criarUsuario("jose3@gmail.com", "123456", "CLIENTE");
         String token = login("jose3@gmail.com", "123456");
 
         ErrorMessage responseBody = patchSenha(u.id(), new UsuarioSenhaDTO("123456", "nova01", "outra1"), token)
@@ -136,7 +133,7 @@ public class UsuarioIT {
     @Test
     @DisplayName("Alterar senha de usuário inexistente (id 110) retorna 404")
     public void alterarSenha_IdInexistente_RetornaErrorMessageStatus404() {
-        criarUsuario("admin404@gmail.com", "123456", "ADMIN");
+        criarUsuario("admin404@gmail.com", "123456", "CLIENTE");
         String token = login("admin404@gmail.com", "123456");
 
         ErrorMessage responseBody = patchSenha(110, new UsuarioSenhaDTO("123456", "nova01", "nova01"), token)
@@ -152,7 +149,7 @@ public class UsuarioIT {
     @Test
     @DisplayName("Alterar senha com campos inválidos retorna 422")
     public void alterarSenha_CamposInvalidos_RetornaErrorMessageStatus422() {
-        UsuarioResponseDTO u = criarUsuario("jose4@gmail.com", "123456", "ADMIN");
+        UsuarioResponseDTO u = criarUsuario("jose4@gmail.com", "123456", "CLIENTE");
         String token = login("jose4@gmail.com", "123456");
 
         ErrorMessage responseBody = patchSenha(u.id(), new UsuarioSenhaDTO("", "nova01", "nova01"), token)
@@ -173,7 +170,7 @@ public class UsuarioIT {
         assertThat(responseBody).isNotNull();
         assertThat(responseBody.getStatus()).isEqualTo(422);
         assertThat(responseBody.getErrors()).containsOnlyKeys("novaSenha");
-        assertThat(responseBody.getErrors().get("novaSenha")).isEqualTo("A senha deve ter entre 6 e 20 caracteres");
+        assertThat(responseBody.getErrors().get("novaSenha")).isEqualTo("A senha deve ter 6 caracteres");
 
         String senhaLonga = "a".repeat(21);
         responseBody = patchSenha(u.id(), new UsuarioSenhaDTO("123456", senhaLonga, senhaLonga), token)
@@ -189,7 +186,7 @@ public class UsuarioIT {
     @Test
     @DisplayName("Alterar senha com vários campos inválidos retorna 422 listando cada campo")
     public void alterarSenha_VariosCamposInvalidos_RetornaErrosDeCadaCampo() {
-        UsuarioResponseDTO u = criarUsuario("jose5@gmail.com", "123456", "ADMIN");
+        UsuarioResponseDTO u = criarUsuario("jose5@gmail.com", "123456", "CLIENTE");
         String token = login("jose5@gmail.com", "123456");
 
         ErrorMessage responseBody = patchSenha(u.id(), new UsuarioSenhaDTO("", "123", ""), token)

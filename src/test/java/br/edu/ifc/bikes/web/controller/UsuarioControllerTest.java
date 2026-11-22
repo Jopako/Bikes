@@ -1,17 +1,19 @@
 package br.edu.ifc.bikes.web.controller;
 
+import br.edu.ifc.bikes.dto.AuthRequestDTO;
 import br.edu.ifc.bikes.dto.UsuarioRequestDTO;
 import br.edu.ifc.bikes.dto.UsuarioSenhaDTO;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.hasItems;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,7 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class UsuarioControllerTest {
 
     @Autowired
@@ -28,18 +29,47 @@ class UsuarioControllerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private String login(String username, String password) throws Exception {
+        String body = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AuthRequestDTO(username, password))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(body).get("token").asText();
+    }
+
+    private String loginAdmin() throws Exception {
+        return login("admin@bikes.com", "123456");
+    }
+
+    private JsonNode criarUsuario(String username, String role) throws Exception {
+        String body = mockMvc.perform(post("/api/v1/usuarios")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UsuarioRequestDTO(username, "123456", role))))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(body);
+    }
+
     @Test
     @DisplayName("Criar usuário com sucesso retorna 201 e dados do usuário")
     void createUsuario_ComDadosValidos_Retorna201() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("maria@ifc.edu.br", "123456", null);
-
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .content(objectMapper.writeValueAsString(
+                                new UsuarioRequestDTO("maria@ifc.edu.br", "123456", null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.username").value("maria@ifc.edu.br"))
                 .andExpect(jsonPath("$.role").value("CLIENTE"));
+    }
+
+    @Test
+    @DisplayName("Cadastro público nunca cria ADMIN, mesmo se o cliente informar o perfil")
+    void createUsuario_ComRoleAdmin_SempreRetornaCliente() throws Exception {
+        JsonNode criado = criarUsuario("admin-falso@ifc.edu.br", "ADMIN");
+        org.assertj.core.api.Assertions.assertThat(criado.get("role").asText()).isEqualTo("CLIENTE");
+        org.assertj.core.api.Assertions.assertThat(login("admin-falso@ifc.edu.br", "123456")).isNotBlank();
     }
 
     @Test
@@ -76,16 +106,13 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Buscar usuário por id retorna 200")
     void getById_ComIdExistente_Retorna200() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("ana@ifc.edu.br", "123456", null);
+        JsonNode criado = criarUsuario("ana@ifc.edu.br", null);
+        long id = criado.get("id").asLong();
 
-        mockMvc.perform(post("/api/v1/usuarios")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isCreated());
-
-        mockMvc.perform(get("/api/v1/usuarios/1"))
+        mockMvc.perform(get("/api/v1/usuarios/{id}", id)
+                .header("Authorization", "Bearer " + loginAdmin()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$.username").value("ana@ifc.edu.br"))
                 .andExpect(jsonPath("$.role").value("CLIENTE"));
     }
@@ -93,7 +120,8 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Buscar usuário por id inexistente retorna 404")
     void getById_ComIdInexistente_Retorna404() throws Exception {
-        mockMvc.perform(get("/api/v1/usuarios/999"))
+        mockMvc.perform(get("/api/v1/usuarios/999999")
+                .header("Authorization", "Bearer " + loginAdmin()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -101,16 +129,11 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Atualizar senha com sucesso retorna 204")
     void updatePassword_ComSucesso_Retorna204() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("lucas@ifc.edu.br", "123456", null);
+        long id = criarUsuario("lucas@ifc.edu.br", null).get("id").asLong();
+        UsuarioSenhaDTO senhaDTO = new UsuarioSenhaDTO("123456", "nova01", "nova01");
 
-        mockMvc.perform(post("/api/v1/usuarios")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isCreated());
-
-        UsuarioSenhaDTO senhaDTO = new UsuarioSenhaDTO("123456", "novaSenha1", "novaSenha1");
-
-        mockMvc.perform(patch("/api/v1/usuarios/1")
+        mockMvc.perform(patch("/api/v1/usuarios/{id}", id)
+                        .header("Authorization", "Bearer " + login("lucas@ifc.edu.br", "123456"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(senhaDTO)))
                 .andExpect(status().isNoContent());
@@ -119,16 +142,11 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Atualizar senha quando confirmação não confere retorna 400")
     void updatePassword_ComConfirmacaoIncorreta_Retorna400() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("carlos@ifc.edu.br", "123456", null);
+        long id = criarUsuario("carlos@ifc.edu.br", null).get("id").asLong();
+        UsuarioSenhaDTO senhaDTO = new UsuarioSenhaDTO("123456", "nova01", "outra1");
 
-        mockMvc.perform(post("/api/v1/usuarios")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isCreated());
-
-        UsuarioSenhaDTO senhaDTO = new UsuarioSenhaDTO("123456", "novaSenha1", "outraSenha");
-
-        mockMvc.perform(patch("/api/v1/usuarios/1")
+        mockMvc.perform(patch("/api/v1/usuarios/{id}", id)
+                        .header("Authorization", "Bearer " + login("carlos@ifc.edu.br", "123456"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(senhaDTO)))
                 .andExpect(status().isBadRequest())
@@ -139,16 +157,11 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Atualizar senha com senha atual incorreta retorna 400")
     void updatePassword_ComSenhaAtualIncorreta_Retorna400() throws Exception {
-        UsuarioRequestDTO dto = new UsuarioRequestDTO("julia@ifc.edu.br", "123456", null);
+        long id = criarUsuario("julia@ifc.edu.br", null).get("id").asLong();
+        UsuarioSenhaDTO senhaDTO = new UsuarioSenhaDTO("senhaErrada", "nova01", "nova01");
 
-        mockMvc.perform(post("/api/v1/usuarios")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isCreated());
-
-        UsuarioSenhaDTO senhaDTO = new UsuarioSenhaDTO("senhaErrada", "novaSenha1", "novaSenha1");
-
-        mockMvc.perform(patch("/api/v1/usuarios/1")
+        mockMvc.perform(patch("/api/v1/usuarios/{id}", id)
+                        .header("Authorization", "Bearer " + login("julia@ifc.edu.br", "123456"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(senhaDTO)))
                 .andExpect(status().isBadRequest())
@@ -159,9 +172,10 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Atualizar senha de usuário inexistente retorna 404")
     void updatePassword_ComUsuarioInexistente_Retorna404() throws Exception {
-        UsuarioSenhaDTO senhaDTO = new UsuarioSenhaDTO("123456", "novaSenha1", "novaSenha1");
+        UsuarioSenhaDTO senhaDTO = new UsuarioSenhaDTO("123456", "nova01", "nova01");
 
-        mockMvc.perform(patch("/api/v1/usuarios/999")
+        mockMvc.perform(patch("/api/v1/usuarios/999999")
+                        .header("Authorization", "Bearer " + loginAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(senhaDTO)))
                 .andExpect(status().isNotFound())
@@ -171,21 +185,13 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("Listar todos os usuários retorna 200 e lista")
     void getAll_RetornaListaDeUsuarios() throws Exception {
-        UsuarioRequestDTO dto1 = new UsuarioRequestDTO("user1@ifc.edu.br", "123456", null);
-        UsuarioRequestDTO dto2 = new UsuarioRequestDTO("user2@ifc.edu.br", "123456", null);
+        criarUsuario("user1@ifc.edu.br", null);
+        criarUsuario("user2@ifc.edu.br", null);
 
-        mockMvc.perform(post("/api/v1/usuarios")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto1)))
-                .andExpect(status().isCreated());
-
-        mockMvc.perform(post("/api/v1/usuarios")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto2)))
-                .andExpect(status().isCreated());
-
-        mockMvc.perform(get("/api/v1/usuarios"))
+        mockMvc.perform(get("/api/v1/usuarios")
+                .header("Authorization", "Bearer " + loginAdmin()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$[*].username",
+                        hasItems("user1@ifc.edu.br", "user2@ifc.edu.br")));
     }
 }
